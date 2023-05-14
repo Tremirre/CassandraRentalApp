@@ -1,3 +1,5 @@
 cassandra/
 .venv/
 .env
+
+**/*.pyc
