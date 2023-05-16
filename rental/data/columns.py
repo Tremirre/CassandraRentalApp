@@ -7,7 +7,7 @@ import cassandra.cqlengine.columns as cql_columns
 import cassandra.cqlengine.models as cqlm
 import cassandra.cqlengine.query as cql_query
 
-from . import exceptions
+from .. import exceptions
 
 
 class OnDelete(enum.Enum):

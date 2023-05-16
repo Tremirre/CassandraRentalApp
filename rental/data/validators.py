@@ -2,7 +2,7 @@ import typing
 
 import cassandra.cqlengine.models as cqlm
 
-from . import exceptions
+from .. import exceptions
 
 
 def validate_non_negative(model_instance: cqlm.Model, field_name: str):

@@ -7,7 +7,8 @@ import functools
 import cassandra.cqlengine.models as cqlm
 import cassandra.cqlengine.columns as cql_columns
 
-from . import validators, columns, exceptions
+from .. import exceptions
+from . import validators, columns
 
 
 class _IdentifieableValidatedModel(cqlm.Model):
