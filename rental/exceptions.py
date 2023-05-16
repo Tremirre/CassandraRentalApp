@@ -20,3 +20,7 @@ class NonExistentForeignKeyException(ValidationException):
 
 class ForeignKeyRestrictionViolationException(RentalException):
     pass
+
+
+class UniqueFieldsRestrictionViolationException(ValidationException):
+    pass

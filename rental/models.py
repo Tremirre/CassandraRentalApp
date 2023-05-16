@@ -18,6 +18,7 @@ class _IdentifieableValidatedModel(cqlm.Model):
 
     id: uuid.UUID = cql_columns.UUID(primary_key=True, default=uuid.uuid4)
     validators: list[typing.Callable] = []
+    unique_field_groups: list[tuple[str]] = []
     reffed_by: list[FKRegistryEntry] | None = None
 
     @classmethod
@@ -48,6 +49,18 @@ class _IdentifieableValidatedModel(cqlm.Model):
     def validate(self) -> None:
         for validator in self.validators:
             validator(self)
+        for field_group in self.unique_field_groups:
+            relevant_qs = self.objects.filter(
+                **{field_name: getattr(self, field_name) for field_name in field_group}
+            ).allow_filtering()
+            allowable_count = 0
+            if self.objects.filter(id=self.id).count():
+                allowable_count = 1
+            if relevant_qs.count() > allowable_count:
+                raise exceptions.UniqueFieldsRestrictionViolationException(
+                    "An object with the same values for the following fields already exists: "
+                    + ", ".join(field_group)
+                )
 
     def save(self):
         self.validate()
@@ -118,6 +131,8 @@ class RentalBooking(_IdentifieableValidatedModel):
         functools.partial(validators.validate_non_empty, field_name="end_date"),
     ]
 
+    unique_field_groups = [("rental_id", "user_id")]
+
 
 class RentalReview(_IdentifieableValidatedModel):
     rating: int = cql_columns.Integer(required=True)
@@ -134,6 +149,8 @@ class RentalReview(_IdentifieableValidatedModel):
             validators.validate_in_range, field_name="rating", min_value=1, max_value=5
         ),
     ]
+
+    unique_field_groups = [("rental_id", "user_id")]
 
 
 MODELS = [cls for cls in _IdentifieableValidatedModel.__subclasses__()]
