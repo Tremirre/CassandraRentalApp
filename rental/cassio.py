@@ -3,6 +3,8 @@ import cassandra.cqlengine.management as cql_mgmt
 import cassandra.cqlengine.models as cqlm
 import cassandra.cqlengine.query as cql_query
 
+from typing import Callable
+
 from rental.util import chunks
 
 
@@ -18,13 +20,23 @@ class CassandraHandler:
         self.replication_factor = replication_factor
         self.__initialized = False
 
-    def setup(self, models: list[type[cqlm.Model]]) -> None:
+    def setup(
+        self,
+        models: list[type[cqlm.Model]],
+        progress_callback: Callable[[float, str], None] = lambda *x: None,
+    ) -> None:
         if self.__initialized:
             raise RuntimeError("CassandraHandler already initialized")
         self.__initialized = True
+        progress_callback(5, "Connecting to Cassandra")
         cql_conn.setup(self.hosts, self.keyspace, retry_connect=True)
+        progress_callback(20, "Creating keyspace")
         cql_mgmt.create_keyspace_simple(self.keyspace, self.replication_factor)
-        for model in models:
+        len_models = len(models)
+        for i, model in enumerate(models):
+            progress_callback(
+                40 + 60 * (i + 1) / len_models, f"Syncing {model.__name__}"
+            )
             cql_mgmt.sync_table(model)
 
     def teardown(self) -> None:

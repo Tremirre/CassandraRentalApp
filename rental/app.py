@@ -5,17 +5,20 @@ from pathlib import Path
 from . import util
 
 from .cassio import CassandraHandler
-from .ui import UI
+from .ui import UI, LoadingBox
 from .data import models, mock
 
 
 class RentalApp:
     def __init__(self, cassandra_spec: dict):
         self.root = ctk.CTk()
+        self.root.title("Rental App")
+
         self.ui = UI(self.root, model_names=[model.__name__ for model in models.MODELS])
         self.mock_data_dir = None
         self.cassandra_handler = CassandraHandler(**cassandra_spec)
-        self.cassandra_handler.setup(models.MODELS)
+
+        # self.cassandra_handler.setup(models.MODELS)
 
         self.ui.add_btn_command(
             "clear_database",
@@ -26,7 +29,21 @@ class RentalApp:
             "repopulate_database",
             self.on_repopulate_database,
         )
-        self.reload_model_counts()
+        self.loading_box = LoadingBox()
+        self.loading_box.set_progress(0)
+        self.loading_box.after(
+            100,
+            lambda: self.cassandra_handler.setup(
+                models.MODELS,
+                lambda progress, status: self.loading_box.set_progress(
+                    progress / 100, status
+                )
+                or self.loading_box.update(),
+            )
+            or self.loading_box.quit(),
+        )
+        self.loading_box.mainloop()
+        self.loading_box.destroy()
 
     def reload_model_counts(self):
         for model in models.MODELS:
