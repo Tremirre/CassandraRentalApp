@@ -1,6 +1,6 @@
 import customtkinter as ctk
 
-from .util import name_to_tag
+from ..util import name_to_tag
 from .registry import ComponentRegistry
 
 

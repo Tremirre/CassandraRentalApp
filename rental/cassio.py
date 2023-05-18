@@ -1,6 +1,9 @@
 import cassandra.cqlengine.connection as cql_conn
 import cassandra.cqlengine.management as cql_mgmt
 import cassandra.cqlengine.models as cqlm
+import cassandra.cqlengine.query as cql_query
+
+from rental.util import chunks
 
 
 class CassandraHandler:
@@ -28,6 +31,24 @@ class CassandraHandler:
         if not self.__initialized:
             raise RuntimeError("CassandraHandler not initialized")
         cql_mgmt.drop_keyspace(self.keyspace)
+
+    def clear_tables(self, models: list[type[cqlm.Model]], safe: bool = True) -> None:
+        if not self.__initialized:
+            raise RuntimeError("CassandraHandler not initialized")
+
+        if not safe:
+            for model in models:
+                cql_conn.session.execute(
+                    f"TRUNCATE {self.keyspace}.{model._table_name}"
+                )
+            return
+
+        for model in models:
+            all_objects = model.objects.all()
+            for model_batch in chunks(all_objects, 100):
+                with cql_query.BatchQuery() as batch:
+                    for obj in model_batch:
+                        obj.batch(batch).delete()
 
     def close(self) -> None:
         cql_conn.cluster.shutdown()

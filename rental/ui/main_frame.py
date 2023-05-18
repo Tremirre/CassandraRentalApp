@@ -2,7 +2,7 @@ import customtkinter as ctk
 
 from . import panel
 from .registry import ComponentRegistry
-from .util import name_to_tag
+from ..util import name_to_tag
 
 
 class MainFrame(ctk.CTkFrame):
@@ -19,7 +19,7 @@ class MainFrame(ctk.CTkFrame):
         self.admin_panel = panel.DualPanel(
             self,
             title="Application Admin",
-            button_texts=["Clear Database", "Populate Database"],
+            button_texts=["Clear Database", "Repopulate Database"],
             component_registry=component_registry,
         )
         self.user_panel = panel.Panel(

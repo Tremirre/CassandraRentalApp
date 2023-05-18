@@ -101,12 +101,14 @@ class RentalProperty(_IdentifieableValidatedModel):
     address: str = cql_columns.Text(required=True)
     bedrooms: int = cql_columns.Integer(required=True, default=0)
     bathrooms: int = cql_columns.Integer(required=True, default=0)
-    price: float = cql_columns.Float(required=True)
+    price_per_night: float = cql_columns.Float(required=True)
 
     validators = [
         functools.partial(validators.validate_non_negative, field_name="bedrooms"),
         functools.partial(validators.validate_non_negative, field_name="bathrooms"),
-        functools.partial(validators.validate_non_negative, field_name="price"),
+        functools.partial(
+            validators.validate_non_negative, field_name="price_per_night"
+        ),
         functools.partial(validators.validate_non_empty, field_name="name"),
     ]
 
