@@ -4,7 +4,12 @@ from typing import Callable
 
 class LongRunningTask:
     def __init__(
-        self, task: Callable, on_start: Callable, on_complete: Callable, *args, **kwargs
+        self,
+        task: Callable,
+        on_start: Callable = lambda: None,
+        on_complete: Callable = lambda: None,
+        *args,
+        **kwargs
     ) -> None:
         self.task = task
         self.args = args

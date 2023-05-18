@@ -31,3 +31,24 @@ class SideFrame(ctk.CTkFrame):
                 font=("Roboto", 16),
             )
             button.pack(fill="x", padx=10, pady=10)
+
+        self.stats_frame = ctk.CTkFrame(self)
+        self.stats_frame.pack(fill="x", padx=10, pady=10, anchor="s")
+
+        self.stats_frame.columnconfigure(0, weight=1)
+        self.stats_frame.columnconfigure(1, weight=1)
+
+        self.time_label = ctk.CTkLabel(
+            self.stats_frame,
+            text="Task Time: ",
+            font=("Roboto", 12),
+        )
+        self.time_label.grid(row=0, column=0, sticky="w", padx=10)
+
+        self.time_value_label = component_registry.make_label(
+            "time_value",
+            self.stats_frame,
+            text="0.0s",
+            font=("Roboto", 12),
+        )
+        self.time_value_label.grid(row=0, column=1, sticky="e", padx=10)

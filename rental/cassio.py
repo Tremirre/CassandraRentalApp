@@ -3,6 +3,8 @@ import cassandra.cqlengine.management as cql_mgmt
 import cassandra.cqlengine.models as cqlm
 import cassandra.cqlengine.query as cql_query
 
+from cassandra import InvalidRequest, ConsistencyLevel
+
 from typing import Callable
 
 from rental.util import chunks
@@ -27,9 +29,13 @@ class CassandraHandler:
     ) -> None:
         if self.__initialized:
             raise RuntimeError("CassandraHandler already initialized")
-        self.__initialized = True
         progress_callback(5, "Connecting to Cassandra")
-        cql_conn.setup(self.hosts, self.keyspace, retry_connect=True)
+        cql_conn.setup(
+            self.hosts,
+            self.keyspace,
+            retry_connect=True,
+            consistency=ConsistencyLevel.QUORUM,
+        )
         progress_callback(20, "Creating keyspace")
         cql_mgmt.create_keyspace_simple(self.keyspace, self.replication_factor)
         len_models = len(models)
@@ -38,6 +44,7 @@ class CassandraHandler:
                 40 + 60 * (i + 1) / len_models, f"Syncing {model.__name__}"
             )
             cql_mgmt.sync_table(model)
+        self.__initialized = True
 
     def teardown(self) -> None:
         if not self.__initialized:
@@ -50,9 +57,12 @@ class CassandraHandler:
 
         if not safe:
             for model in models:
-                cql_conn.session.execute(
-                    f"TRUNCATE {self.keyspace}.{model._table_name}"
-                )
+                try:
+                    cql_conn.session.execute(
+                        f"TRUNCATE {self.keyspace}.{model._table_name}"
+                    )
+                except InvalidRequest:
+                    continue
             return
 
         for model in models:

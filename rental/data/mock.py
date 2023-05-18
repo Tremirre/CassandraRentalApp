@@ -30,8 +30,8 @@ def load_mock_data(mock_data_dir: Path) -> None:
                 created_property_ids.append(new_property.id)
 
     bookings_data = json.loads((mock_data_dir / "bookings.json").read_text())
-    booking_users = random.choices(created_user_ids, k=len(bookings_data))
-    booking_properties = random.choices(created_property_ids, k=len(bookings_data))
+    booking_users = random.sample(created_user_ids, k=len(bookings_data))
+    booking_properties = random.sample(created_property_ids, k=len(bookings_data))
 
     combined_booking_data = tuple(zip(bookings_data, booking_users, booking_properties))
     for batch_booking_data in chunks(combined_booking_data, CHUNK_SIZE):
@@ -42,8 +42,8 @@ def load_mock_data(mock_data_dir: Path) -> None:
                 )
 
     reviews_data = json.loads((mock_data_dir / "reviews.json").read_text())
-    review_users = random.choices(created_user_ids, k=len(reviews_data))
-    review_properties = random.choices(created_property_ids, k=len(reviews_data))
+    review_users = random.sample(created_user_ids, k=len(reviews_data))
+    review_properties = random.sample(created_property_ids, k=len(reviews_data))
 
     combined_review_data = tuple(zip(reviews_data, review_users, review_properties))
     for batch_review_data in chunks(combined_review_data, CHUNK_SIZE):
