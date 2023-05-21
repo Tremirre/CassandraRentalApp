@@ -1,12 +1,13 @@
 import customtkinter as ctk
 
 from pathlib import Path
+from functools import partial
 from typing import Callable
 
 from tkinter import messagebox
 from cassandra.cluster import NoHostAvailable
 
-from . import util
+from . import util, stress
 from .cassio import CassandraHandler
 from .ui import UI, LoadingBox
 from .data import models, mock
@@ -19,6 +20,7 @@ class RentalApp:
         self.root = ctk.CTk()
         self.root.title("Rental App")
         self.sync_table = {}
+        self.cass_spec = cassandra_spec
 
         self.ui = UI(self.root, model_names=[model.__name__ for model in models.MODELS])
         self.mock_data_dir = None
@@ -35,6 +37,7 @@ class RentalApp:
             self.update_labels_from_sync_table()
             self.root.after(200, scheduled_table_sync)
 
+        self.reload_model_counts()
         scheduled_table_sync()
 
     def reload_model_counts(self):
@@ -43,22 +46,15 @@ class RentalApp:
             self.sync_table[tag] = str(model.objects.count())
 
     def on_clear_database(self):
-        with Timer() as timer:
-            self.cassandra_handler.clear_tables(models.MODELS, safe=False)
-            self.reload_model_counts()
-        self.sync_table["time_value"] = f"{timer.elapsed():.2f}s"
+        self.cassandra_handler.clear_tables(models.MODELS, safe=False)
 
     def on_repopulate_database(self):
-        with Timer() as timer:
-            if self.mock_data_dir is None:
-                raise ValueError("Mock data directory not set")
-            if not self.mock_data_dir.exists():
-                raise ValueError("Mock data directory does not exist")
-            self.cassandra_handler.clear_tables(models.MODELS, safe=False)
-            mock.load_mock_data(self.mock_data_dir)
-            self.reload_model_counts()
-
-        self.sync_table["time_value"] = f"{timer.elapsed():.2f}s"
+        if self.mock_data_dir is None:
+            raise ValueError("Mock data directory not set")
+        if not self.mock_data_dir.exists():
+            raise ValueError("Mock data directory does not exist")
+        self.cassandra_handler.clear_tables(models.MODELS, safe=False)
+        mock.load_mock_data(self.mock_data_dir)
 
     def set_mock_data_dir(self, mock_data_dir: Path):
         self.mock_data_dir = mock_data_dir
@@ -76,6 +72,16 @@ class RentalApp:
         self.register_long_action(self.on_clear_database, "clear_database", "DB Clear")
         self.register_long_action(
             self.on_repopulate_database, "repopulate_database", "DB Repopulate"
+        )
+        self.register_long_action(
+            partial(stress.same_request_test, requests_count=100),
+            "stress_test_1",
+            "Same Request Test [1]",
+        )
+        self.register_long_action(
+            partial(util.run_concurrent_stress_test, stress_test_nr=2),
+            "stress_test_2",
+            "Random Actions Test [2]",
         )
 
     def initialize_connection(self):
@@ -103,10 +109,19 @@ class RentalApp:
             self.sync_table["status_value"] = f"Running {name}..."
 
         def on_complete():
+            self.reload_model_counts()
             for btn in self.ui.component_registry.button_registry.values():
                 btn.configure(state="normal")
             self.sync_table["status_value"] = "Idle"
 
+        def timer_wrapped_action():
+            with Timer() as timer:
+                action()
+            self.sync_table["time_value"] = f"{timer.elapsed():.2f}s"
+
         self.ui.add_btn_command(
-            btn_tag, lambda: LongRunningTask(action, on_start, on_complete).start()
+            btn_tag,
+            lambda: LongRunningTask(
+                timer_wrapped_action, on_start, on_complete
+            ).start(),
         )

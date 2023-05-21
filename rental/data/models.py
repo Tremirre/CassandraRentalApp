@@ -140,10 +140,15 @@ class RentalBooking(_IdentifieableValidatedModel):
                 "This booking overlaps with an existing booking"
             )
 
+    def validate_start_date_before_end_date(self):
+        if self.start_date > self.end_date:
+            raise exceptions.BadValueException("Start date must be before end date")
+
     validators = [
         functools.partial(validators.validate_non_empty, field_name="start_date"),
         functools.partial(validators.validate_non_empty, field_name="end_date"),
         validate_no_overlapping_bookings,
+        validate_start_date_before_end_date,
     ]
 
     unique_field_groups = [("rental_id", "user_id")]
