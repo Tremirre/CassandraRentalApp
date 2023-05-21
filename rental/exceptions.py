@@ -10,6 +10,10 @@ class BadValueException(ValidationException):
     pass
 
 
+class OverlappingBookingException(BadValueException):
+    pass
+
+
 class BadTypeException(ValidationException):
     pass
 

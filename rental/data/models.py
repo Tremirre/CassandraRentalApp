@@ -129,9 +129,21 @@ class RentalBooking(_IdentifieableValidatedModel):
         on_delete=columns.OnDelete.CASCADE,
     )
 
+    def validate_no_overlapping_bookings(self):
+        overlapping_qs = self.objects.filter(
+            rental_id=self.rental_id,
+            start_date__lte=self.end_date,
+            end_date__gte=self.start_date,
+        ).allow_filtering()
+        if overlapping_qs.count():
+            raise exceptions.OverlappingBookingException(
+                "This booking overlaps with an existing booking"
+            )
+
     validators = [
         functools.partial(validators.validate_non_empty, field_name="start_date"),
         functools.partial(validators.validate_non_empty, field_name="end_date"),
+        validate_no_overlapping_bookings,
     ]
 
     unique_field_groups = [("rental_id", "user_id")]
