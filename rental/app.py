@@ -73,8 +73,13 @@ class RentalApp:
         self.register_long_action(
             self.on_repopulate_database, "repopulate_database", "DB Repopulate"
         )
+
+        def same_request_test_wrapper():
+            stress.same_request_test(requests_count=100)
+            return {"successful_processes": "1/1"}
+
         self.register_long_action(
-            partial(stress.same_request_test, requests_count=100),
+            same_request_test_wrapper,
             "stress_test_1",
             "Same Request Test [1]",
         )
@@ -82,6 +87,16 @@ class RentalApp:
             partial(util.run_concurrent_stress_test, stress_test_nr=2),
             "stress_test_2",
             "Random Actions Test [2]",
+        )
+        self.register_long_action(
+            partial(util.run_concurrent_stress_test, stress_test_nr=3),
+            "stress_test_3",
+            "Random Actions Test [3]",
+        )
+        self.register_long_action(
+            partial(util.run_concurrent_stress_test, stress_test_nr=4, num_clients=4),
+            "stress_test_4",
+            "Random Actions Test [4]",
         )
 
     def initialize_connection(self):
@@ -116,8 +131,11 @@ class RentalApp:
 
         def timer_wrapped_action():
             with Timer() as timer:
-                action()
+                action_result = action()
             self.sync_table["time_value"] = f"{timer.elapsed():.2f}s"
+            if action_result is not None:
+                for key, value in action_result.items():
+                    self.sync_table[key] = value
 
         self.ui.add_btn_command(
             btn_tag,

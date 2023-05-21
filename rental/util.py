@@ -1,4 +1,7 @@
 import subprocess
+import random
+
+from datetime import datetime, timedelta
 
 
 def name_to_tag(name: str) -> str:
@@ -8,6 +11,10 @@ def name_to_tag(name: str) -> str:
 def chunks(lst: list, n: int) -> list[list]:
     for i in range(0, len(lst), n):
         yield lst[i : i + n]
+
+
+def random_date() -> datetime:
+    return datetime.now().date() - timedelta(days=random.randint(0, 365 * 5))
 
 
 def run_concurrent_stress_test(stress_test_nr: int, num_clients: int = 2):
@@ -25,10 +32,14 @@ def run_concurrent_stress_test(stress_test_nr: int, num_clients: int = 2):
             )
         )
     [p.wait() for p in processes]
+    failed_count = 0
     for i, p in enumerate(processes):
+        std_err = p.stderr.read()
+        failed_count += bool(std_err)
         print(f"Process {i}")
         print("Output:")
         print(p.stdout.read())
         print("Errors:")
-        print(p.stderr.read())
+        print(std_err)
         print("==========")
+    return {"successful_processes": f"{num_clients - failed_count}/{num_clients}"}

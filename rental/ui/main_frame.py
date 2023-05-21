@@ -42,6 +42,9 @@ class MainFrame(ctk.CTkFrame):
         ]
 
         self.setup_admin_panel(component_registry, model_names)
+        # self.setup_user_panel(component_registry)
+        self.setup_testing_panel(component_registry)
+
         self.show_panel(0)
 
     def show_panel(self, panel_index: int) -> None:
@@ -89,3 +92,26 @@ class MainFrame(ctk.CTkFrame):
         ]
         for i, label in enumerate(count_labels):
             label.grid(row=i + 1, column=1, padx=30, pady=10, sticky="nse")
+
+    def setup_testing_panel(self, component_registry: ComponentRegistry) -> None:
+        result_grid = ctk.CTkFrame(self.testing_panel.right_frame)
+        result_grid.grid(padx=10, pady=10, sticky="nsew")
+        result_grid.columnconfigure(0, weight=1)
+        result_grid.columnconfigure(1, weight=1)
+
+        successful_label = ctk.CTkLabel(
+            result_grid,
+            text="Successful Processes",
+            font=("Roboto", 16, "bold"),
+            justify="left",
+        )
+        successful_label.grid(row=0, column=0, padx=30, pady=10, sticky="nsw")
+
+        successful_value = component_registry.make_label(
+            "successful_processes",
+            result_grid,
+            text="0/0",
+            font=("Roboto", 16),
+        )
+
+        successful_value.grid(row=0, column=1, padx=30, pady=10, sticky="nse")
