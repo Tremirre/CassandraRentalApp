@@ -8,6 +8,7 @@ class ComponentRegistry:
     button_registry: dict[str, ctk.CTkButton] = field(default_factory=dict)
     label_registry: dict[str, ctk.CTkLabel] = field(default_factory=dict)
     entry_registry: dict[str, ctk.CTkEntry] = field(default_factory=dict)
+    combo_box_registry: dict[str, ctk.CTkComboBox] = field(default_factory=dict)
 
     def make_button(self, tag: str, *args, **kwargs) -> ctk.CTkButton:
         button = ctk.CTkButton(*args, **kwargs)
@@ -23,6 +24,14 @@ class ComponentRegistry:
         entry = ctk.CTkEntry(*args, **kwargs)
         self.entry_registry[tag] = entry
         return entry
+
+    def make_combo_box(self, tag: str, *args, **kwargs) -> ctk.CTkComboBox:
+        combo_box = ctk.CTkComboBox(*args, **kwargs)
+        self.combo_box_registry[tag] = combo_box
+        return combo_box
+
+    def get_combo_box(self, tag: str) -> ctk.CTkComboBox:
+        return self.combo_box_registry[tag]
 
     def get_button(self, tag: str) -> ctk.CTkButton:
         return self.button_registry[tag]

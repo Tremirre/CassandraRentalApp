@@ -11,7 +11,7 @@ CASSANDRA_HOST = os.getenv("CASSANDRA_HOST")
 KEYSPACE_NAME = os.getenv("KEYSPACE_NAME")
 REPLICATION_FACTOR = int(os.getenv("REPLICATION_FACTOR", 1))
 
-MOCK_DATA_DIR = Path(__file__).parent / "mockdata"
+MOCK_DATA_DIR = Path(__file__).parent / "mockdata_s"
 
 if __name__ == "__main__":
     rent_app = app.RentalApp(

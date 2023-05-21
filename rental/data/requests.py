@@ -10,6 +10,7 @@ def make_reservation(
     property_id: UUID,
     start_date: str,
     end_date: str,
+    ignore_errors: bool = True,
 ) -> UUID | None:
     booking = models.RentalBooking(
         user_id=user_id,
@@ -17,12 +18,15 @@ def make_reservation(
         start_date=start_date,
         end_date=end_date,
     )
-    try:
+    if ignore_errors:
+        try:
+            booking.save()
+        except models.exceptions.OverlappingBookingException:
+            return None
+        except models.exceptions.UniqueFieldsRestrictionViolationException:
+            return None
+    else:
         booking.save()
-    except models.exceptions.OverlappingBookingException:
-        return None
-    except models.exceptions.UniqueFieldsRestrictionViolationException:
-        return None
     return booking.id
 
 
@@ -31,6 +35,7 @@ def add_review(
     property_id: UUID,
     rating: int,
     comment: str,
+    ignore_errors: bool = True,
 ) -> UUID:
     review = models.RentalReview(
         user_id=user_id,
@@ -38,12 +43,15 @@ def add_review(
         rating=rating,
         comment=comment,
     )
-    try:
+    if ignore_errors:
+        try:
+            review.save()
+        except models.exceptions.BadValueException:
+            return None
+        except models.exceptions.UniqueFieldsRestrictionViolationException:
+            return None
+    else:
         review.save()
-    except models.exceptions.BadValueException:
-        return None
-    except models.exceptions.UniqueFieldsRestrictionViolationException:
-        return None
     return review.id
 
 

@@ -114,14 +114,16 @@ class RentalProperty(_IdentifieableValidatedModel):
 
 
 class User(_IdentifieableValidatedModel):
-    name: str = cql_columns.Text(required=True)
+    name: str = cql_columns.Text(required=True, index=True)
 
 
 class RentalBooking(_IdentifieableValidatedModel):
     start_date: str = cql_columns.Date(required=True)
     end_date: str = cql_columns.Date(required=True)
     rental_id: uuid.UUID = columns.ForeignUUID(
-        required=True, ref_model=RentalProperty, on_delete=columns.OnDelete.CASCADE
+        required=True,
+        ref_model=RentalProperty,
+        on_delete=columns.OnDelete.CASCADE,
     )
     user_id: uuid.UUID = columns.ForeignUUID(
         required=True,

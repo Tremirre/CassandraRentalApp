@@ -7,10 +7,10 @@ from typing import Callable
 from tkinter import messagebox
 from cassandra.cluster import NoHostAvailable
 
-from . import util, stress
+from . import util, stress, exceptions
 from .cassio import CassandraHandler
 from .ui import UI, LoadingBox
-from .data import models, mock
+from .data import models, mock, requests
 from .task import LongRunningTask
 from .timer import Timer
 
@@ -56,6 +56,147 @@ class RentalApp:
         self.cassandra_handler.clear_tables(models.MODELS, safe=False)
         mock.load_mock_data(self.mock_data_dir)
 
+    def on_refresh_inputs(self):
+        all_user_names = models.User.objects.all().values_list("name")
+        flat_all_user_names = [name for sublist in all_user_names for name in sublist]
+        all_car_names = models.RentalProperty.objects.all().values_list("name")
+        flat_all_car_names = [name for sublist in all_car_names for name in sublist]
+        for prefix in ["mr", "c", "u", "v"]:
+            self.ui.component_registry.get_combo_box(
+                f"{prefix}_user_combo_box"
+            ).configure(values=flat_all_user_names)
+            self.ui.component_registry.get_combo_box(
+                f"{prefix}_property_combo_box"
+            ).configure(values=flat_all_car_names)
+
+    def _get_user_property_from_combo_box(self, box_prefix: str) -> tuple[str, str]:
+        user_name = self.ui.component_registry.get_combo_box(
+            f"{box_prefix}_user_combo_box"
+        ).get()
+        property_name = self.ui.component_registry.get_combo_box(
+            f"{box_prefix}_property_combo_box"
+        ).get()
+        return user_name, property_name
+
+    def on_make_reservation(self):
+        user_name, property_name = self._get_user_property_from_combo_box("mr")
+        start_date = self.ui.component_registry.get_entry("mr_start_date_entry").get()
+        end_date = self.ui.component_registry.get_entry("mr_end_date_entry").get()
+        if property_name == "" or user_name == "":
+            messagebox.showerror("Error", "Please select a property and a user")
+            return
+        if start_date == "" or end_date == "":
+            messagebox.showerror("Error", "Please enter a start and end date")
+            return
+        try:
+            user = models.User.objects.filter(name=user_name).first()
+            property = models.RentalProperty.objects.filter(name=property_name).first()
+            requests.make_reservation(
+                user_id=user.id,
+                property_id=property.id,
+                start_date=start_date,
+                end_date=end_date,
+                ignore_errors=False,
+            )
+        except models.User.DoesNotExist:
+            messagebox.showerror("Error", "Bad user/property name")
+            return
+        except exceptions.RentalException as e:
+            messagebox.showerror("Error", f"Reservation failed with error: {e}")
+            return
+        messagebox.showinfo("Success", "Reservation made successfully")
+
+    def on_cancel_reservation(self):
+        user_name, property_name = self._get_user_property_from_combo_box("c")
+        if user_name == "" or property_name == "":
+            messagebox.showerror("Error", "Please select a user and a property")
+            return
+        try:
+            user = models.User.objects.filter(name=user_name).first()
+            property = models.RentalProperty.objects.filter(name=property_name).first()
+            booking = (
+                models.RentalBooking.objects.filter(
+                    user_id=user.id, rental_id=property.id
+                )
+                .allow_filtering()
+                .first()
+            )
+            if booking is None:
+                messagebox.showerror("Error", "No booking found for user/property")
+                return
+            requests.cancel_booking(booking.id)
+        except models.User.DoesNotExist:
+            messagebox.showerror("Error", "Bad user/property name")
+            return
+        except exceptions.RentalException as e:
+            messagebox.showerror("Error", f"Reservation failed with error: {e}")
+            return
+        messagebox.showinfo("Success", "Reservation cancelled successfully")
+
+    def on_update_reservation(self):
+        user_name, property_name = self._get_user_property_from_combo_box("u")
+        start_date = self.ui.component_registry.get_entry("u_start_date_entry").get()
+        end_date = self.ui.component_registry.get_entry("u_end_date_entry").get()
+        if user_name == "" or property_name == "":
+            messagebox.showerror("Error", "Please select a user and a property")
+            return
+        if start_date == "" or end_date == "":
+            messagebox.showerror("Error", "Please enter a start and end date")
+            return
+        try:
+            user = models.User.objects.filter(name=user_name).first()
+            property = models.RentalProperty.objects.filter(name=property_name).first()
+            booking = (
+                models.RentalBooking.objects.filter(
+                    user_id=user.id, rental_id=property.id
+                )
+                .allow_filtering()
+                .first()
+            )
+            booking.update(start_date=start_date, end_date=end_date)
+        except models.User.DoesNotExist:
+            messagebox.showerror("Error", "Bad user/property name")
+            return
+        except exceptions.RentalException as e:
+            messagebox.showerror("Error", f"Reservation failed with error: {e}")
+            return
+        messagebox.showinfo("Success", "Reservation made successfully")
+
+    def on_view_reservations(self):
+        user_name, property_name = self._get_user_property_from_combo_box("v")
+        if user_name == "" and property_name == "":
+            messagebox.showerror("Error", "Please select a user or a property")
+            return
+        try:
+            user = models.User.objects.filter(name=user_name).first()
+            property = models.RentalProperty.objects.filter(name=property_name).first()
+            filter_params = {}
+            if user is not None:
+                filter_params["user_id"] = user.id
+            if property is not None:
+                filter_params["rental_id"] = property.id
+            bookings = (
+                models.RentalBooking.objects.filter(**filter_params)
+                .allow_filtering()
+                .values_list("rental_id", "start_date", "end_date")
+            )
+            if len(bookings) == 0:
+                messagebox.showinfo("Success", "No bookings found")
+                return
+
+            for booking in bookings:
+                property = models.RentalProperty.objects.get(id=booking[0])
+                booking[0] = property.name
+            self.ui.main_frame.vr_table.entries = bookings
+            self.ui.main_frame.vr_table.update_entries()
+
+        except models.User.DoesNotExist:
+            messagebox.showerror("Error", "Bad user/property name")
+            return
+        except exceptions.RentalException as e:
+            messagebox.showerror("Error", f"Reservation failed with error: {e}")
+            return
+
     def set_mock_data_dir(self, mock_data_dir: Path):
         self.mock_data_dir = mock_data_dir
 
@@ -72,6 +213,9 @@ class RentalApp:
         self.register_long_action(self.on_clear_database, "clear_database", "DB Clear")
         self.register_long_action(
             self.on_repopulate_database, "repopulate_database", "DB Repopulate"
+        )
+        self.register_long_action(
+            self.on_refresh_inputs, "refresh_button", "Refresh Inputs"
         )
 
         def same_request_test_wrapper():
@@ -97,6 +241,23 @@ class RentalApp:
             partial(util.run_concurrent_stress_test, stress_test_nr=4, num_clients=4),
             "stress_test_4",
             "Random Actions Test [4]",
+        )
+
+        self.ui.add_btn_command(
+            "mr_submit_button",
+            self.on_make_reservation,
+        )
+        self.ui.add_btn_command(
+            "c_submit_button",
+            self.on_cancel_reservation,
+        )
+        self.ui.add_btn_command(
+            "u_submit_button",
+            self.on_update_reservation,
+        )
+        self.ui.add_btn_command(
+            "v_submit_button",
+            self.on_view_reservations,
         )
 
     def initialize_connection(self):
