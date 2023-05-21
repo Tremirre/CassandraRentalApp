@@ -1,6 +1,7 @@
 import customtkinter as ctk
 
 from pathlib import Path
+from typing import Callable
 
 from tkinter import messagebox
 from cassandra.cluster import NoHostAvailable
@@ -66,20 +67,15 @@ class RentalApp:
         self.root.mainloop()
 
     def update_labels_from_sync_table(self):
-        for key, value in self.sync_table.items():
+        sync_copy = self.sync_table.copy()
+        for key, value in sync_copy.items():
             self.ui.set_label_text(key, str(value))
-        self.sync_table.clear()
         self.root.update()
 
     def setup_button_callbacks(self):
-        self.ui.add_btn_command(
-            "clear_database",
-            lambda: LongRunningTask(self.on_clear_database).start(),
-        )
-
-        self.ui.add_btn_command(
-            "repopulate_database",
-            lambda: LongRunningTask(self.on_repopulate_database).start(),
+        self.register_long_action(self.on_clear_database, "clear_database", "DB Clear")
+        self.register_long_action(
+            self.on_repopulate_database, "repopulate_database", "DB Repopulate"
         )
 
     def initialize_connection(self):
@@ -99,3 +95,18 @@ class RentalApp:
             self.loading_box.quit()
             exit(1)
         self.loading_box.quit()
+
+    def register_long_action(self, action: Callable, btn_tag: str, name: str) -> None:
+        def on_start():
+            for btn in self.ui.component_registry.button_registry.values():
+                btn.configure(state="disabled")
+            self.sync_table["status_value"] = f"Running {name}..."
+
+        def on_complete():
+            for btn in self.ui.component_registry.button_registry.values():
+                btn.configure(state="normal")
+            self.sync_table["status_value"] = "Idle"
+
+        self.ui.add_btn_command(
+            btn_tag, lambda: LongRunningTask(action, on_start, on_complete).start()
+        )

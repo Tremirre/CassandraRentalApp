@@ -52,3 +52,18 @@ class SideFrame(ctk.CTkFrame):
             font=("Roboto", 12),
         )
         self.time_value_label.grid(row=0, column=1, sticky="e", padx=10)
+
+        self.status_label = ctk.CTkLabel(
+            self.stats_frame,
+            text="Status: ",
+            font=("Roboto", 12),
+        )
+        self.status_label.grid(row=1, column=0, sticky="w", padx=10)
+
+        self.status_value_label = component_registry.make_label(
+            "status_value",
+            self.stats_frame,
+            text="Idle",
+            font=("Roboto", 12),
+        )
+        self.status_value_label.grid(row=1, column=1, sticky="e", padx=10)

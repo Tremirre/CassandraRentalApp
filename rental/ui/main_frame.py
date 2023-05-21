@@ -42,7 +42,6 @@ class MainFrame(ctk.CTkFrame):
         ]
 
         self.setup_admin_panel(component_registry, model_names)
-
         self.show_panel(0)
 
     def show_panel(self, panel_index: int) -> None:
