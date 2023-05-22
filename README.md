@@ -24,3 +24,7 @@ Nextly, the requirements have to be installed using pip:
 Finally, to start the application input the following command:
 
 > python main.py
+
+## DB Schema
+
+![rental_db_diagram](https://github.com/Tremirre/CassandraRentalApp/assets/72276326/b56be9d0-7214-45de-bc47-9297dbeeabe4)
