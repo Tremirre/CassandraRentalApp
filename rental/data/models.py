@@ -137,7 +137,10 @@ class RentalBooking(_IdentifieableValidatedModel):
             start_date__lte=self.end_date,
             end_date__gte=self.start_date,
         ).allow_filtering()
-        if overlapping_qs.count():
+        external_overlapping = [
+            booking for booking in overlapping_qs if booking.id != self.id
+        ]
+        if external_overlapping:
             raise exceptions.OverlappingBookingException(
                 "This booking overlaps with an existing booking"
             )
