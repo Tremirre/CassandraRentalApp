@@ -1,5 +1,6 @@
 cassandra/
 mockdata/
+mockdata_s/
 .venv/
 tmp/
 .env
